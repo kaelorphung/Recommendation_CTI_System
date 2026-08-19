@@ -1,0 +1,3 @@
+# Core Phase 3 uses only Python standard library.
+# Optional EVTX support:
+python-evtx>=0.8.1

